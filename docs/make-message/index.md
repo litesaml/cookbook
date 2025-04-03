@@ -3,6 +3,6 @@ title: Make Message
 sidebar_position: 3
 ---
 
-+ [Make AuthnRequest](authn-request)
-+ [Make Response](response)
-+ [Make LogoutRequest](logout-request)
++ [Make AuthnRequest](authn-request.md)
++ [Make Response](response.md)
++ [Make LogoutRequest](logout-request.md)
