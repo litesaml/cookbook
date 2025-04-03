@@ -19,9 +19,19 @@ $binding = $bindingFactory->getBindingByRequest($request);
 
 $messageContext = new \LightSaml\Context\Profile\MessageContext();
 /** @var \LightSaml\Model\Protocol\Response $response */
-$response = $binding->receive($request, $messageContext);
+$binding->receive($request, $messageContext);
 
-print $response->getID();
+/**
+ * Traverse through all the response objects and display them
+ * to the screen.
+ */
+foreach ($messageContext->asResponse()->getAllAssertions() as $assertion) {
+    foreach ($assertion->getAllAttributeStatements() as $attributeStatement) {
+        foreach ($attributeStatement->getAllAttributes() as $attribute) {
+            print '<pre>';print_r($attribute);print '</pre>';
+        }
+    }
+}
 ```
 
 Receiving of other SAML documents/messages, like Response is done in the same way. Return value of the ``Binding::receive()`` depends
