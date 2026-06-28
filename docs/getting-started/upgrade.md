@@ -224,9 +224,14 @@ $spSsoDescriptor->addAssertionConsumerService(
 **After**
 
 ```php
-use Litesaml\Metadata\MetadataBuilder;
+use Litesaml\ServiceProviderWrapper;
+use Litesaml\Support\MessageHandler;
 use Litesaml\Models\Descriptors\{Sp, Endpoint, Certificate, PublicKey, PrivateKey};
 use Litesaml\Enums\BindingType;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+$factory = new Psr17Factory();
+$handler = new MessageHandler($factory, $factory);
 
 $sp = new Sp(
     entityId: 'https://my.site',
@@ -238,5 +243,6 @@ $sp = new Sp(
     ),
 );
 
-$xml = MetadataBuilder::buildSpMetadata($sp);
+$spWrapper = new ServiceProviderWrapper($sp, $handler);
+$xml = $spWrapper->generateMetadata();
 ```
