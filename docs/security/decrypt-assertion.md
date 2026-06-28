@@ -1,42 +1,53 @@
 ---
-title: Decrypt Assertion
+title: Decrypt assertion
 sidebar_position: 5
 ---
 
-To decrypt a SAML Assertion from the Response with encrypted Assertion you would need your key pair the Assertion
-was encrypted for. The sender encrypted the SAML Assertion having your public key which you gave to then
-trough certificate in your metadata XML.
+When the IdP sends encrypted assertions, the SP decrypts them automatically in `handleAuthnResponse()` — provided the `Sp` descriptor is configured with an encryption `Certificate` that includes a `PrivateKey`.
 
-First you deserialize the XML into the Response data model object. Then you create a Credential with your
-key pair. Finally, you decrypt the SAML Assertion with that credential and get the decrypted Assertion.
+## SP: configure decryption
 
 ```php
-<?php
-$xml = '<samlp:Response><saml:EncryptedAssertion>...</saml:EncryptedAssertion></samlp:Response>';
+use Litesaml\Models\Descriptors\Certificate;
+use Litesaml\Models\Descriptors\Endpoint;
+use Litesaml\Models\Descriptors\PrivateKey;
+use Litesaml\Models\Descriptors\PublicKey;
+use Litesaml\Models\Descriptors\Sp;
+use Litesaml\Enums\BindingType;
 
-// deserialize XML into a Response data model object
-$deserializationContext = new \LightSaml\Model\Context\DeserializationContext();
-$deserializationContext->getDocument()->loadXML($xml);
-$response = new \LightSaml\Model\Protocol\Response();
-$response->deserialize(
-    $deserializationContext->getDocument()->firstChild,
-    $deserializationContext
+$sp = new Sp(
+    entityId: 'https://my-app.example.com',
+    acs: new Endpoint('https://my-app.example.com/saml/acs', BindingType::POST),
+    slo: new Endpoint('https://my-app.example.com/saml/slo', BindingType::REDIRECT),
+    encryption: new Certificate(
+        publicKey: new PublicKey(file_get_contents('/path/to/sp-enc-cert.pem')),
+        privateKey: new PrivateKey(file_get_contents('/path/to/sp-enc-key.pem')),
+    ),
 );
+```
 
-// load you key par credential
-$credential = new \LightSaml\Credential\X509Credential(
-    \LightSaml\Credential\X509Certificate::fromFile('my.crt'),
-    \LightSaml\Credential\KeyHelper::createPrivateKey('my.key', '', true)
-);
+## Receiving the decrypted attributes
 
-// decrypt the Assertion with your credential
-$decryptDeserializeContext = new \LightSaml\Model\Context\DeserializationContext();
-/** @var \LightSaml\Model\Assertion\EncryptedAssertionReader $reader */
-$reader = $response->getFirstEncryptedAssertion();
-$assertion = $reader->decryptMultiAssertion([$credential], $decryptDeserializeContext);
+No extra code is needed. Call `handleAuthnResponse()` as usual:
 
-// use decrypted assertion
-foreach ($assertion->getFirstAttributeStatement()->getAllAttributes() as $attribute) {
-    print sprintf("%s: %s\n", $attribute->getName(), $attribute->getFirstAttributeValue());
+```php
+$authnResponse = $spWrapper->handleAuthnResponse($request);
+
+foreach ($authnResponse->attributes as $attribute) {
+    echo $attribute->name;
+    // $attribute->encrypted === true for attributes that were encrypted by the IdP
+    print_r($attribute->values);
 }
 ```
+
+Encrypted attributes are decrypted transparently and merged into `$authnResponse->attributes` alongside any plaintext attributes. You can distinguish them by checking `$attribute->encrypted`.
+
+## Error handling
+
+If the response contains an encrypted assertion and `$sp->encryption` is not configured or has no `PrivateKey`, `handleAuthnResponse()` throws a `SamlException`:
+
+```
+No encryption certificate configured to decrypt assertion
+```
+
+Make sure the SP's encryption certificate public key is published in the SP's metadata so the IdP can use it to encrypt. See [Encrypt assertion](encrypt-assertion) and [Generate metadata](../metadata/generate).

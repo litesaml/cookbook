@@ -3,80 +3,74 @@ title: Generate a key pair
 sidebar_position: 1
 ---
 
-In order to use any of the SAML security features like signatures and encryption, you would first need a key pair. In consists of
-a public part - the certificate, and a private key. Private key is used to sign SAML messages, while public key is used to encrypt
-and message, so only you can decrypt it, and to verify your signatures. Certificate is published with your SAML metadata and is freely
-distributed to your relying parties. Private key, just as it's name says, should remain private and for your eyes only. Due to security
-issues, certificates expire after some time, and you have to renew them in order to keep SAML signing and encryption working.
+SAML security features (signing and encryption) require a key pair: a certificate (public key) and a private key. The certificate is shared with your SAML partners and published in your metadata. The private key must remain secret.
 
-You can generate a key pair with [OpenSSL](https://www.openssl.org/). It's a complex suit with several bundled tools, but the easiest
-way is
+Certificates expire over time and must be renewed to keep signing and encryption working.
+
+## Generating a key pair with OpenSSL
 
 ```shell
-$ openssl req -new -x509 -days 365 -nodes -sha256 -out saml.crt -keyout saml.pem
+openssl req -new -x509 -days 365 -nodes -sha256 -out saml.crt -keyout saml.pem
 ```
 
-That command line will produce two files ``saml.crt`` - the certificate with a public key, and ``saml.pem`` - your private key. You need
-to provide those two files to the Light Saml in order to use SAML security features.
+This produces:
 
-**Note**: The ``-sha256`` switch tells OpenSSL to generate a certificate using SHA-256 digest algorithm. By default, if you omit that
-switch, you'll get a SHA-1 digest which is considered week these days, and you should avoid it.
+- `saml.crt` — the certificate (public key)
+- `saml.pem` — the private key
 
+**Note:** The `-sha256` flag sets the digest algorithm to SHA-256. Omitting it defaults to SHA-1, which is considered weak and should be avoided.
 
-## Using key pair with Light Saml
+## Loading the key pair
 
-You can load a certificate file using static method ``fromFile`` on class ``X509Certificate``:
+Use the `Certificate`, `PublicKey`, and `PrivateKey` classes to load your key pair:
 
 ```php
-<?php
-$certificate = X509Certificate::fromFile('/path/to/saml.crt');
+use Litesaml\Models\Descriptors\Certificate;
+use Litesaml\Models\Descriptors\PrivateKey;
+use Litesaml\Models\Descriptors\PublicKey;
+
+$certificate = new Certificate(
+    publicKey: new PublicKey(file_get_contents('/path/to/saml.crt')),
+    privateKey: new PrivateKey(file_get_contents('/path/to/saml.pem')),
+);
 ```
 
-You can load your private key using ``KeyHelper`` class
+`PublicKey` and `PrivateKey` accept either:
+- A full PEM string (with `-----BEGIN ...-----` headers), or
+- A raw base64-encoded DER value (without headers).
+
+If your private key is passphrase-protected:
 
 ```php
-<?php
-$privateKey = KeyHelper::createPrivateKey('/path/to/saml.pem', '', true, XMLSecurityKey::RSA_SHA256);
+$certificate = new Certificate(
+    publicKey: new PublicKey(file_get_contents('/path/to/saml.crt')),
+    privateKey: new PrivateKey(file_get_contents('/path/to/saml.pem'), passphrase: 'secret'),
+);
 ```
 
-You can sign a SAML message by setting an instance of ``SignatureWriter`` to it's signature property and serializing it afterwards.
+Pass the `Certificate` as the `signing` or `encryption` property when building your `Sp` or `Idp` descriptor. See [Sign message](sign-message) and [Encrypt assertion](encrypt-assertion).
 
-```php
-<?php
-$message->setSignature(SignatureWriter::createByKeyAndCertificate($certificate, $privateKey));
-$context = new SerializationContext();
-$message->serialize($context->getDocument(), $context);
+## Inspecting a certificate
+
+```shell
+openssl x509 -in saml.crt -text -noout
 ```
 
-For details about signing look at [How to sign a SAML message](sign-message) cookbook article.
+Key fields to check:
 
-
-## Inspecting generated certificate
-
-Once generated certificate can be inspected with following command line
-
-```
-$ openssl x509 -in saml.crt -text -noout
-```
-
-Important things to look for are following
-
-Digest algorithm used
-
+**Digest algorithm** (should be SHA-256):
 ```
 Signature Algorithm: sha256WithRSAEncryption
 ```
 
-Issuer
-
+**Issuer:**
 ```
-Issuer: C=AU, ST=Some-State, O=Internet Widgits Pty Ltd, CN=common name
+Issuer: C=AU, ST=Some-State, O=Example Corp, CN=my-app.example.com
 ```
 
-And validity dates
-
+**Validity dates:**
 ```
 Validity
-    Not Before: Aug  9 07:04:20 2016 GMT
-    Not After : Aug  9 07:04:20 2017 GMT
+    Not Before: Jan  1 00:00:00 2025 GMT
+    Not After : Jan  1 00:00:00 2026 GMT
 ```

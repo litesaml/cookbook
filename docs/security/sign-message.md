@@ -3,65 +3,58 @@ title: Sign message
 sidebar_position: 2
 ---
 
-Signing all SAML objects (``AuthnRequest``, ``Response``, ``Assertion``, ``LogoutRequest``, and ``LogoutResponse``) is all done in the
-same way - by setting an instance of the ``SignatureWriter`` to object's signature property - by the **``setSignature()``** method.
-Since signing all SAML objects is the same, only the example of signing one of them is given below - signing of the ``AuthnRequest``.
+Message signing is automatic in litesaml/saml. When a `Certificate` with a `PrivateKey` is configured as the `signing` property on your `Sp` or `Idp` descriptor, all outgoing messages are signed without any extra code.
 
-In order to instantiate ``SignatureWrite`` and enable it for signing, you have to provide to its constructor (or set it later on, but
-before the serialization) your **certificate** and your **private key**.
+## Configuring signing for an SP
 
 ```php
-<?php
-$authnRequest = new \LightSaml\Model\Protocol\AuthnRequest();
-$authnRequest
-    ->setAssertionConsumerServiceURL('https://my.site/acs')
-    ->setProtocolBinding(\LightSaml\SamlConstants::BINDING_SAML2_HTTP_POST)
-    ->setID(\LightSaml\Helper::generateID())
-    ->setIssueInstant(new \DateTime())
-    ->setDestination('https://idp.com/login')
-    ->setIssuer(new \LightSaml\Model\Assertion\Issuer('https://my.entity.id'))
-;
+use Litesaml\Models\Descriptors\Certificate;
+use Litesaml\Models\Descriptors\Endpoint;
+use Litesaml\Models\Descriptors\PrivateKey;
+use Litesaml\Models\Descriptors\PublicKey;
+use Litesaml\Models\Descriptors\Sp;
+use Litesaml\Enums\BindingType;
 
-$certificate = \LightSaml\Credential\X509Certificate::fromFile('certificate.crt');
-$privateKey = \LightSaml\Credential\KeyHelper::createPrivateKey('private.key', '', true);
-
-$authnRequest->setSignature(new \LightSaml\Model\XmlDSig\SignatureWriter($certificate, $privateKey));
-
-$serializationContext = new \LightSaml\Model\Context\SerializationContext();
-$authnRequest->serialize($serializationContext->getDocument(), $serializationContext);
+$sp = new Sp(
+    entityId: 'https://my-app.example.com',
+    acs: new Endpoint('https://my-app.example.com/saml/acs', BindingType::POST),
+    slo: new Endpoint('https://my-app.example.com/saml/slo', BindingType::REDIRECT),
+    signing: new Certificate(
+        publicKey: new PublicKey(file_get_contents('/path/to/sp-cert.pem')),
+        privateKey: new PrivateKey(file_get_contents('/path/to/sp-key.pem')),
+    ),
+);
 ```
 
-Serialization of such AuthnRequest would produce formatted XML similar to one below.
+Every message sent by `ServiceProviderWrapper` (`sendAuthnRequest`, `sendLogoutRequest`, `sendLogoutResponse`) will be signed using this certificate and private key.
 
-```xml
-<AuthnRequest xmlns="urn:oasis:names:tc:SAML:2.0:protocol"
-    ID="_8d3d46271c2e234f6b0d79f6d2716c707746abf9ca"
-    Version="2.0"
-    IssueInstant="2016-07-27T13:33:50Z"
-    Destination="https://idp.com/login"
-    ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
-    AssertionConsumerServiceURL="https://my.site/acs"
->
-    <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://my.entity.id</saml:Issuer>
-    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-        <ds:SignedInfo>
-            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-            <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-            <ds:Reference URI="#_8d3d46271c2e234f6b0d79f6d2716c707746abf9ca">
-                <ds:Transforms>
-                    <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-                    <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-                </ds:Transforms>
-                <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-                <ds:DigestValue>Ez74FQ0Nqwre+mL8/Zsceekeh/s=</ds:DigestValue>
-            </ds:Reference>
-        </ds:SignedInfo>
-        <ds:SignatureValue>SIGNATURE.BYTES.HERE==</ds:SignatureValue>
-        <ds:KeyInfo>
-            <ds:X509Data>
-                <ds:X509Certificate>CERTIFICATE.BYTES.HERE=</ds:X509Certificate>
-            </ds:X509Data>
-        </ds:KeyInfo>
-    </ds:Signature>
-</AuthnRequest>
+## Configuring signing for an IdP
+
+```php
+use Litesaml\Models\Descriptors\Certificate;
+use Litesaml\Models\Descriptors\Endpoint;
+use Litesaml\Models\Descriptors\Idp;
+use Litesaml\Models\Descriptors\PrivateKey;
+use Litesaml\Models\Descriptors\PublicKey;
+use Litesaml\Enums\BindingType;
+
+$idp = new Idp(
+    entityId: 'https://my-idp.example.com',
+    sso: new Endpoint('https://my-idp.example.com/saml/sso', BindingType::REDIRECT),
+    slo: new Endpoint('https://my-idp.example.com/saml/slo', BindingType::REDIRECT),
+    signing: new Certificate(
+        publicKey: new PublicKey(file_get_contents('/path/to/idp-cert.pem')),
+        privateKey: new PrivateKey(file_get_contents('/path/to/idp-key.pem')),
+    ),
+);
 ```
+
+Every message sent by `IdentityProviderWrapper` (`sendAuthnResponse`, `sendLogoutRequest`, `sendLogoutResponse`) will be signed.
+
+## How it works
+
+Internally, `MessageHandler::send()` checks whether the issuer's `signing` property includes a `PrivateKey`. If it does, it attaches a `SignatureWriter` to the message before serialization using the RSA-SHA256 algorithm. The certificate's public key is embedded in the XML signature's `KeyInfo` block so the recipient can verify it.
+
+## Publishing your certificate
+
+Include your signing certificate in your metadata so partners can verify your signatures. `generateMetadata()` does this automatically — see [Generate metadata](../metadata/generate).

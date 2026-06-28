@@ -1,10 +1,10 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 title: Contributing
 ---
 
-Welcome et thanks to contribute to this project.  
-First, please describe your needs in a new [issue](https://github.com/litesaml/lightsaml/issues).
+Welcome and thanks for contributing to this project.  
+First, please describe your needs in a new [issue](https://github.com/litesaml/saml/issues).
 
 ## How to write code
 
@@ -15,6 +15,6 @@ First, please describe your needs in a new [issue](https://github.com/litesaml/l
 ## How to run test
 
 ```shell
-docker run --rm -it -w /app -v $PWD:/app webdevops/php:8.1 composer install
-docker run --rm -it -w /app -v $PWD:/app webdevops/php:8.1 composer test
+docker run --rm -it -w /app -v $PWD:/app webdevops/php:8.4 composer install
+docker run --rm -it -w /app -v $PWD:/app webdevops/php:8.4 composer test
 ```
