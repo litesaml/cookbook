@@ -191,7 +191,7 @@ BindingType::REDIRECT
 
 ## 6. Metadata
 
-Building and parsing metadata is now handled by dedicated classes. See [Generate metadata](../metadata/generate) and [Parse metadata](../metadata/parse) for full examples.
+Building and parsing metadata is now handled by dedicated classes. See [Generate metadata](../../metadata/generate) and [Parse metadata](../../metadata/parse) for full examples.
 
 **Before**
 
