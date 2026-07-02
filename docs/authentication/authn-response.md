@@ -52,7 +52,8 @@ The `status` property is a `Litesaml\Enums\Status` enum:
 ### Reading attributes
 
 ```php
-$nameId = $authnResponse->nameId;  // NameID value, if present
+$nameId       = $authnResponse->nameId;        // NameID value, if present
+$sessionIndex = $authnResponse->sessionIndex;  // SessionIndex, if present — keep it for logout
 
 // Get a specific attribute
 $email = $authnResponse->getAttributeByName('email')?->values[0];
@@ -72,6 +73,7 @@ The `AuthnResponse` object properties:
 | `issuer` | `string` | The IdP's entity ID |
 | `status` | `?Status` | Authentication result |
 | `nameId` | `?string` | Subject NameID |
+| `sessionIndex` | `?string` | Session index of the authenticated session — pass it to [`sendLogoutRequest()`](../single-logout/logout-request) later |
 | `inResponseTo` | `?string` | ID of the original `AuthnRequest` |
 | `attributes` | `Attribute[]` | User attributes |
 | `relayState` | `?string` | RelayState forwarded from the request |
