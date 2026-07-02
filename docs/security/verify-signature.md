@@ -3,7 +3,7 @@ title: Verify signature
 sidebar_position: 3
 ---
 
-Signatures can be verified either automatically at the point of receiving a message, or manually after the fact.
+Signatures are verified inline, at the point of receiving a message. There is no way to verify a signature after the fact on an already-parsed message.
 
 ## Automatic verification on receive
 
@@ -34,23 +34,6 @@ $idpWrapper->handleAuthnRequest($request, validate: true, issuer: $sp);
 $idpWrapper->handleLogoutRequest($request, validate: true, issuer: $sp);
 $idpWrapper->handleLogoutResponse($request, validate: true, issuer: $sp);
 ```
-
-## Manual verification
-
-You can also verify a signature on a message you have already received, using `validateSignature()`:
-
-```php
-$authnResponse = $spWrapper->handleAuthnResponse($request); // No validation yet
-
-// Later, once you know which IdP sent it:
-$isValid = $spWrapper->validateSignature($authnResponse, $idp);
-
-if (!$isValid) {
-    // Signature is missing or does not verify against $idp->signing
-}
-```
-
-`validateSignature()` returns `false` if the message has no signature or if the issuer has no `signing` certificate configured. It does not throw.
 
 ## Requirement
 

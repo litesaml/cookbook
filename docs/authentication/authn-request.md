@@ -45,7 +45,6 @@ The method returns an `AuthnRequest` object with the following properties:
 | `id` | `string` | Unique request ID |
 | `issuer` | `string` | The SP's entity ID |
 | `relayState` | `?string` | Opaque state string passed by the SP |
-| `signature` | `?Signature` | Signature present on the request, if any |
 
 ### Validating the SP's signature
 

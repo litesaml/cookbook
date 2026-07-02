@@ -60,7 +60,6 @@ The returned `LogoutRequest` object:
 | `nameId` | `?string` | NameID of the user to log out |
 | `sessionIndex` | `?string` | Session index to terminate |
 | `relayState` | `?string` | Opaque state string |
-| `signature` | `?Signature` | Signature on the request, if any |
 
 ### Validating the signature
 

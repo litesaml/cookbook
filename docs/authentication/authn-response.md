@@ -77,7 +77,6 @@ The `AuthnResponse` object properties:
 | `inResponseTo` | `?string` | ID of the original `AuthnRequest` |
 | `attributes` | `Attribute[]` | User attributes |
 | `relayState` | `?string` | RelayState forwarded from the request |
-| `signature` | `?Signature` | Signature present on the response |
 
 ### Validating the IdP's signature
 

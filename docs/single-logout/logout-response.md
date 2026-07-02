@@ -38,7 +38,6 @@ The returned `LogoutResponse` object:
 | `id` | `string` | Unique response ID |
 | `issuer` | `string` | Entity ID of the sender |
 | `relayState` | `?string` | Opaque state string forwarded from the request |
-| `signature` | `?Signature` | Signature on the response, if any |
 
 ### Validating the signature
 
