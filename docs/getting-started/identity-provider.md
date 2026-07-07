@@ -80,7 +80,12 @@ $relayState  = $authnRequest->relayState;
 To validate the SP's signature on the request:
 
 ```php
-$authnRequest = $idpWrapper->handleAuthnRequest($request, validate: true, issuer: $sp);
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
+
+$authnRequest = $idpWrapper->handleAuthnRequest($request, new ContextList(
+    new Validate($sp),
+));
 ```
 
 ## 5. Send an authentication response
@@ -88,17 +93,29 @@ $authnRequest = $idpWrapper->handleAuthnRequest($request, validate: true, issuer
 After authenticating the user, call `sendAuthnResponse()` with the SP descriptor and the user's attributes:
 
 ```php
-use Litesaml\Models\Messages\Attribute;
+use Litesaml\Models\Messages\Context\Attribute;
+use Litesaml\Models\Messages\Context\ContextList;
 
-$response = $idpWrapper->sendAuthnResponse($sp, [
+$response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
     new Attribute('email',       ['user@example.com']),
     new Attribute('displayName', ['Jane Doe']),
     new Attribute('role',        ['admin', 'editor']),
-]);
+));
 
 // Emit the PSR-7 response — it auto-submits a POST form to the SP's ACS
 ```
 
 The response is always sent to the SP's ACS endpoint using the HTTP-POST binding. The IdP's assertion is signed automatically if `$idp->signing` is configured with a `PrivateKey`.
+
+To set the assertion's `NameID`, add a `NameId` context:
+
+```php
+use Litesaml\Models\Messages\Context\NameId;
+
+$response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
+    new NameId('user@example.com', 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'),
+    new Attribute('displayName', ['Jane Doe']),
+));
+```
 
 To send encrypted attributes instead, see [Encrypt assertion](../security/encrypt-assertion).

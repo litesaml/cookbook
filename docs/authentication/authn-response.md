@@ -7,21 +7,35 @@ After authenticating the user, the IdP sends an `AuthnResponse` to the SP's ACS 
 
 ## IdP: send an AuthnResponse
 
-Call `sendAuthnResponse()` with the target `Sp` descriptor and an array of `Attribute` objects representing the user's identity:
+Call `sendAuthnResponse()` with the target `Sp` descriptor and a `ContextList` of `Attribute` objects representing the user's identity:
 
 ```php
-use Litesaml\Models\Messages\Attribute;
+use Litesaml\Models\Messages\Context\Attribute;
+use Litesaml\Models\Messages\Context\ContextList;
 
-$response = $idpWrapper->sendAuthnResponse($sp, [
+$response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
     new Attribute('email',       ['user@example.com']),
     new Attribute('displayName', ['Jane Doe']),
     new Attribute('groups',      ['admins', 'editors']),
-]);
+));
 ```
 
 The response uses the SP's ACS binding (HTTP-POST). The IdP's assertion is signed automatically if `$idp->signing` is configured with a `PrivateKey`.
 
 To send encrypted attributes (so only the SP with the matching private key can read them), see [Encrypt assertion](../security/encrypt-assertion).
+
+### Setting the NameID
+
+Add a `NameId` context to populate the assertion's `Subject`/`NameID` — useful to honor a format the SP requested via `NameIDPolicy` (see [Authentication request](./authn-request)):
+
+```php
+use Litesaml\Models\Messages\Context\NameId;
+
+$response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
+    new NameId('user@example.com', 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'),
+    new Attribute('displayName', ['Jane Doe']),
+));
+```
 
 ## SP: receive an AuthnResponse
 
@@ -52,8 +66,9 @@ The `status` property is a `Litesaml\Enums\Status` enum:
 ### Reading attributes
 
 ```php
-$nameId       = $authnResponse->nameId;        // NameID value, if present
-$sessionIndex = $authnResponse->sessionIndex;  // SessionIndex, if present — keep it for logout
+$nameId       = $authnResponse->nameId?->value;   // NameID value, if present
+$nameIdFormat = $authnResponse->nameId?->format;  // NameID format, if present
+$sessionIndex = $authnResponse->sessionIndex;     // SessionIndex, if present — keep it for logout
 
 // Get a specific attribute
 $email = $authnResponse->getAttributeByName('email')?->values[0];
@@ -72,7 +87,7 @@ The `AuthnResponse` object properties:
 | `id` | `string` | Response ID |
 | `issuer` | `string` | The IdP's entity ID |
 | `status` | `?Status` | Authentication result |
-| `nameId` | `?string` | Subject NameID |
+| `nameId` | `?NameId` | Subject NameID (`value` + `format`) — pass it directly to [`sendLogoutRequest()`](../single-logout/logout-request) later |
 | `sessionIndex` | `?string` | Session index of the authenticated session — pass it to [`sendLogoutRequest()`](../single-logout/logout-request) later |
 | `inResponseTo` | `?string` | ID of the original `AuthnRequest` |
 | `attributes` | `Attribute[]` | User attributes |
@@ -80,13 +95,17 @@ The `AuthnResponse` object properties:
 
 ### Validating the IdP's signature
 
-Pass `validate: true` and the `$idp` descriptor to verify the response signature:
+Pass a `Validate` context with the `$idp` descriptor to verify the response signature:
 
 ```php
 use Litesaml\Exceptions\SamlException;
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
 
 try {
-    $authnResponse = $spWrapper->handleAuthnResponse($request, validate: true, issuer: $idp);
+    $authnResponse = $spWrapper->handleAuthnResponse($request, new ContextList(
+        new Validate($idp),
+    ));
 } catch (SamlException $e) {
     // Signature is missing or invalid
 }

@@ -77,10 +77,15 @@ $response = $spWrapper->sendAuthnRequest($idp);
 // Send the PSR-7 response to the browser using your framework's response emitter
 ```
 
-An optional `$relayState` string can be passed to carry state across the redirect (e.g. the original URL the user was trying to reach).
+An optional `RelayState` context can be passed to carry state across the redirect (e.g. the original URL the user was trying to reach).
 
 ```php
-$response = $spWrapper->sendAuthnRequest($idp, relayState: '/dashboard');
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\RelayState;
+
+$response = $spWrapper->sendAuthnRequest($idp, new ContextList(
+    new RelayState('/dashboard'),
+));
 ```
 
 ## 5. Handle the authentication response
@@ -92,17 +97,22 @@ When the IdP redirects the user back to your ACS endpoint, call `handleAuthnResp
 $authnResponse = $spWrapper->handleAuthnResponse($request);
 
 if ($authnResponse->isSuccess()) {
-    $nameId = $authnResponse->nameId;
+    $nameId = $authnResponse->nameId?->value;
     $email  = $authnResponse->getAttributeByName('email')?->values[0];
 
     // Log the user in
 }
 ```
 
-To also validate the IdP's signature on the response, pass `validate: true` and the IdP descriptor:
+To also validate the IdP's signature on the response, pass a `Validate` context with the IdP descriptor:
 
 ```php
-$authnResponse = $spWrapper->handleAuthnResponse($request, validate: true, issuer: $idp);
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
+
+$authnResponse = $spWrapper->handleAuthnResponse($request, new ContextList(
+    new Validate($idp),
+));
 ```
 
 This throws a `SamlException` if the signature is absent or invalid.

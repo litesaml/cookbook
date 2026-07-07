@@ -43,9 +43,13 @@ The returned `LogoutResponse` object:
 
 ```php
 use Litesaml\Exceptions\SamlException;
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
 
 try {
-    $logoutResponse = $spWrapper->handleLogoutResponse($request, validate: true, issuer: $idp);
+    $logoutResponse = $spWrapper->handleLogoutResponse($request, new ContextList(
+        new Validate($idp),
+    ));
 } catch (SamlException $e) {
     // Signature is missing or invalid
 }
@@ -63,12 +67,15 @@ SP                        IdP
 ```
 
 ```php
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
+
 // Route: POST /saml/slo (SP side — receiving response after SP initiated)
-$logoutResponse = $spWrapper->handleLogoutResponse($request, validate: true, issuer: $idp);
+$logoutResponse = $spWrapper->handleLogoutResponse($request, new ContextList(new Validate($idp)));
 // Redirect to the logged-out page
 
 // Route: GET /saml/slo (SP side — receiving a request initiated by IdP)
-$logoutRequest = $spWrapper->handleLogoutRequest($request, validate: true, issuer: $idp);
+$logoutRequest = $spWrapper->handleLogoutRequest($request, new ContextList(new Validate($idp)));
 // Terminate session
 $response = $spWrapper->sendLogoutResponse($idp);
 // Emit $response

@@ -18,6 +18,16 @@ The generated document includes:
 - The Single Logout Service (SLO) endpoint with its binding
 - The signing certificate (`USE_SIGNING`), if `$sp->signing` is configured
 - The encryption certificate (`USE_ENCRYPTION`), if `$sp->encryption` is configured
+- One `<NameIDFormat>` element per entry in `$sp->nameIdFormats`, if any
+
+```php
+$sp = new Sp(
+    entityId: 'https://my-app.example.com',
+    acs: new Endpoint('https://my-app.example.com/saml/acs', BindingType::POST),
+    slo: new Endpoint('https://my-app.example.com/saml/slo', BindingType::REDIRECT),
+    nameIdFormats: ['urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'],
+);
+```
 
 **Example output:**
 
@@ -37,6 +47,7 @@ The generated document includes:
                             Location="https://my-app.example.com/saml/slo"/>
     <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
                                  Location="https://my-app.example.com/saml/acs"/>
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>
   </md:SPSSODescriptor>
 </md:EntityDescriptor>
 ```
@@ -53,6 +64,7 @@ The generated document includes:
 - The Single Sign-On (SSO) endpoint with its binding
 - The Single Logout Service (SLO) endpoint with its binding
 - The signing certificate (`USE_SIGNING`), if `$idp->signing` is configured
+- One `<NameIDFormat>` element per entry in `$idp->nameIdFormats`, if any
 
 **Example output:**
 
@@ -72,6 +84,7 @@ The generated document includes:
                             Location="https://my-idp.example.com/saml/slo"/>
     <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
                             Location="https://my-idp.example.com/saml/sso"/>
+    <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>
   </md:IDPSSODescriptor>
 </md:EntityDescriptor>
 ```

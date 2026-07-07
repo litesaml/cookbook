@@ -8,13 +8,14 @@ The IdP can encrypt individual attributes so that only the intended SP can decry
 ## IdP: send encrypted attributes
 
 ```php
-use Litesaml\Models\Messages\Attribute;
+use Litesaml\Models\Messages\Context\Attribute;
+use Litesaml\Models\Messages\Context\ContextList;
 
-$response = $idpWrapper->sendAuthnResponse($sp, [
+$response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
     new Attribute('email',       ['user@example.com']),               // Sent in plaintext
     new Attribute('ssn',         ['123-45-6789'], encrypted: true),   // Encrypted
     new Attribute('accessToken', ['tok_abc123'],  encrypted: true),   // Encrypted
-]);
+));
 ```
 
 Encrypted attributes are bundled into a separate `EncryptedAssertion` element in the SAML response. The IdP encrypts them using the SP's public encryption key (RSA-1.5).

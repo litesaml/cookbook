@@ -44,6 +44,7 @@ if ($entity instanceof Sp) {
 | `sso` | First `<SingleSignOnService>` in `<IDPSSODescriptor>` |
 | `slo` | First `<SingleLogoutService>` in `<IDPSSODescriptor>` |
 | `signing` | First `<KeyDescriptor use="signing">` certificate |
+| `nameIdFormats` | All `<NameIDFormat>` elements in `<IDPSSODescriptor>` |
 
 **For an SP entity:**
 
@@ -54,6 +55,7 @@ if ($entity instanceof Sp) {
 | `slo` | First `<SingleLogoutService>` in `<SPSSODescriptor>` |
 | `signing` | First `<KeyDescriptor use="signing">` certificate |
 | `encryption` | First `<KeyDescriptor use="encryption">` certificate |
+| `nameIdFormats` | All `<NameIDFormat>` elements in `<SPSSODescriptor>` |
 
 ## Federation metadata (EntitiesDescriptor)
 

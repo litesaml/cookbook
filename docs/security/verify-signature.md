@@ -7,16 +7,19 @@ Signatures are verified inline, at the point of receiving a message. There is no
 
 ## Automatic verification on receive
 
-All `handle*` methods accept two optional parameters: `validate` and `issuer`. When `validate: true` is passed with an `issuer` descriptor, the method verifies the signature and throws a `SamlException` if it is missing or invalid.
+All `handle*` methods accept a `ContextList`. Pass a `Validate` context built with the expected sender's descriptor, and the method verifies the signature and throws a `SamlException` if it is missing or invalid.
 
 ```php
 use Litesaml\Exceptions\SamlException;
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
 
 try {
     $authnResponse = $spWrapper->handleAuthnResponse(
         $request,
-        validate: true,
-        issuer: $idp,  // Must have $idp->signing configured with the IdP's public certificate
+        new ContextList(
+            new Validate($idp), // Must have $idp->signing configured with the IdP's public certificate
+        ),
     );
 } catch (SamlException $e) {
     // Signature validation failed
@@ -26,13 +29,13 @@ try {
 This pattern works for all handle methods on both wrappers:
 
 ```php
-$spWrapper->handleAuthnResponse($request, validate: true, issuer: $idp);
-$spWrapper->handleLogoutRequest($request, validate: true, issuer: $idp);
-$spWrapper->handleLogoutResponse($request, validate: true, issuer: $idp);
+$spWrapper->handleAuthnResponse($request, new ContextList(new Validate($idp)));
+$spWrapper->handleLogoutRequest($request, new ContextList(new Validate($idp)));
+$spWrapper->handleLogoutResponse($request, new ContextList(new Validate($idp)));
 
-$idpWrapper->handleAuthnRequest($request, validate: true, issuer: $sp);
-$idpWrapper->handleLogoutRequest($request, validate: true, issuer: $sp);
-$idpWrapper->handleLogoutResponse($request, validate: true, issuer: $sp);
+$idpWrapper->handleAuthnRequest($request, new ContextList(new Validate($sp)));
+$idpWrapper->handleLogoutRequest($request, new ContextList(new Validate($sp)));
+$idpWrapper->handleLogoutResponse($request, new ContextList(new Validate($sp)));
 ```
 
 ## Requirement

@@ -9,29 +9,47 @@ A `LogoutRequest` is sent by either the SP or the IdP to initiate single logout.
 
 Both `ServiceProviderWrapper` and `IdentityProviderWrapper` expose `sendLogoutRequest()`. It builds and signs the request (if the sender has a signing certificate), then returns a PSR-7 `ResponseInterface` using the recipient's SLO binding.
 
+A `NameId` context is required — `sendLogoutRequest()` throws a `SamlException` if none is passed.
+
 **SP initiates logout:**
 
 ```php
-// $nameId: the NameID of the user whose session to terminate
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\NameId;
+
 // $idp: the IdP descriptor (target of the request)
-$response = $spWrapper->sendLogoutRequest($idp, $nameId);
+$response = $spWrapper->sendLogoutRequest($idp, new ContextList(
+    new NameId($nameIdValue), // The NameID of the user whose session to terminate
+));
+```
+
+If you already have the `NameId` object from `handleAuthnResponse()`'s `AuthnResponse::$nameId`, pass it straight through:
+
+```php
+$response = $spWrapper->sendLogoutRequest($idp, new ContextList(
+    $authnResponse->nameId,
+));
 ```
 
 **IdP initiates logout:**
 
 ```php
-$response = $idpWrapper->sendLogoutRequest($sp, $nameId);
+$response = $idpWrapper->sendLogoutRequest($sp, new ContextList(
+    new NameId($nameIdValue),
+));
 ```
 
-Optional parameters:
+Optional contexts:
 
 ```php
-$response = $spWrapper->sendLogoutRequest(
-    recipient: $idp,
-    nameId: $nameId,
-    relayState: '/logged-out',  // Opaque state string
-    sessionIndex: $sessionIndex, // The session index from the original AuthnResponse
-);
+use Litesaml\Models\Messages\Context\RelayState;
+use Litesaml\Models\Messages\Context\SessionIndex;
+
+$response = $spWrapper->sendLogoutRequest($idp, new ContextList(
+    new NameId($nameIdValue),
+    new RelayState('/logged-out'),     // Opaque state string
+    new SessionIndex($sessionIndex),   // The session index from the original AuthnResponse
+));
 ```
 
 ## Receive a logout request
@@ -44,7 +62,7 @@ $logoutRequest = $spWrapper->handleLogoutRequest($request);
 // or
 $logoutRequest = $idpWrapper->handleLogoutRequest($request);
 
-$nameId       = $logoutRequest->nameId;
+$nameId       = $logoutRequest->nameId?->value;
 $sessionIndex = $logoutRequest->sessionIndex;
 $relayState   = $logoutRequest->relayState;
 
@@ -57,7 +75,7 @@ The returned `LogoutRequest` object:
 |---|---|---|
 | `id` | `string` | Unique request ID |
 | `issuer` | `string` | Entity ID of the sender |
-| `nameId` | `?string` | NameID of the user to log out |
+| `nameId` | `?NameId` | NameID of the user to log out (`value` + `format`) |
 | `sessionIndex` | `?string` | Session index to terminate |
 | `relayState` | `?string` | Opaque state string |
 
@@ -65,9 +83,13 @@ The returned `LogoutRequest` object:
 
 ```php
 use Litesaml\Exceptions\SamlException;
+use Litesaml\Models\Messages\Context\ContextList;
+use Litesaml\Models\Messages\Context\Validate;
 
 try {
-    $logoutRequest = $spWrapper->handleLogoutRequest($request, validate: true, issuer: $idp);
+    $logoutRequest = $spWrapper->handleLogoutRequest($request, new ContextList(
+        new Validate($idp),
+    ));
 } catch (SamlException $e) {
     // Signature is missing or invalid
 }
