@@ -18,7 +18,9 @@ $response = $idpWrapper->sendAuthnResponse($sp, new ContextList(
 ));
 ```
 
-Encrypted attributes are bundled into a separate `EncryptedAssertion` element in the SAML response. The IdP encrypts them using the SP's public encryption key (RSA-1.5).
+Encrypted attributes are bundled into a separate `EncryptedAssertion` element in the SAML response. The IdP encrypts the assertion body with AES-128-CBC and wraps the session key with the SP's public encryption key using RSA-OAEP (`http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p`).
+
+Since litesaml/saml `5.0` the key transport algorithm is RSA-OAEP. Earlier versions used RSA-1.5, which the decrypting side now refuses by default — see [Upgrading to 5.0 from 4.x](../getting-started/upgrade-guide/5.0-from-4.x).
 
 ## Requirement: SP encryption certificate
 

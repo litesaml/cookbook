@@ -51,3 +51,11 @@ No encryption certificate configured to decrypt assertion
 ```
 
 Make sure the SP's encryption certificate public key is published in the SP's metadata so the IdP can use it to encrypt. See [Encrypt assertion](encrypt-assertion) and [Generate metadata](../metadata/generate).
+
+If the key is configured but decryption itself fails — wrong key, corrupted ciphertext, or an unsupported key transport algorithm — `handleAuthnResponse()` throws a `SamlException` with the message:
+
+```
+Failed to decrypt assertion: ...
+```
+
+Since litesaml/saml `5.0`, assertions encrypted with RSA-1.5 key transport are rejected here by default (Bleichenbacher risk); the IdP must use RSA-OAEP. See [Upgrading to 5.0 from 4.x](../getting-started/upgrade-guide/5.0-from-4.x).
