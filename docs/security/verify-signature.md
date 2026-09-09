@@ -55,3 +55,7 @@ $idp = new Idp(
     ),
 );
 ```
+
+## Validation hardening in 5.0
+
+litesaml/saml `5.0` moves to xmlseclibs 4, which tightens signature verification. These checks are transparent for compliant SAML, but a non-compliant sender that passed `Validate` before may now be rejected: signed documents carrying a `DOCTYPE` are refused, XPath-filter transforms in the signature are refused, and the `SignatureMethod` is bound to the key type so an algorithm-substitution attempt no longer verifies. See [Upgrading to 5.0 from 4.x](../getting-started/upgrade-guide/5.0-from-4.x).
